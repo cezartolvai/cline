@@ -1,3 +1,4 @@
+import { COLLABORATION_PROMPT, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
 // VscodeSessionHost — wraps ClineCore with VSCode-specific customizations
 //
 // Uses ClineCore.create() so the SDK owns session input normalization,
@@ -52,6 +53,7 @@ import { createVscodeExtraTools } from "./vscode-runtime-builder"
 import { getEffectiveTerminalExecutionMode } from "./vscode-terminal-execution-mode"
 
 export interface VscodeSessionHostOptions {
+	collaboration?: SdkCollaboration
 	mcpHub: McpHub
 	requestToolApproval?: (request: {
 		agentId: string
@@ -154,6 +156,7 @@ export class VscodeSessionHost implements SdkSessionHost {
 			const requestedTerminalExecutionMode = StateManager.get().getGlobalStateKey("vscodeTerminalExecutionMode")
 			const extraTools = await createVscodeExtraTools(options.mcpHub, {
 				cwd: inputWithRemoteConfig.config.cwd,
+				collaboration: options.collaboration,
 				getTerminalManager: options.getTerminalManager,
 				vscodeTerminalExecutionMode: getEffectiveTerminalExecutionMode(requestedTerminalExecutionMode),
 				foregroundCommands: options.foregroundCommands,
@@ -161,6 +164,11 @@ export class VscodeSessionHost implements SdkSessionHost {
 			const config: ClineCoreStartInput["config"] = {
 				...inputWithRemoteConfig.config,
 				telemetry: inputWithRemoteConfig.config.telemetry ?? options.telemetry,
+				systemPrompt:
+					(inputWithRemoteConfig.config.systemPrompt ?? "") +
+					(options.collaboration && options.mcpHub.getServers().some((s) => s.name === COLLABORATION_SERVER)
+						? COLLABORATION_PROMPT
+						: ""),
 				extraTools: [...(inputWithRemoteConfig.config.extraTools ?? []), ...extraTools],
 			}
 			return {

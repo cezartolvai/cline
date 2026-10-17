@@ -20,6 +20,7 @@ export interface AutoApprovalSettings {
 		executeAllCommands?: boolean // Legacy field - kept for backward compatibility with older extension versions
 		useBrowser: boolean // Use browser
 		useMcp: boolean // Use MCP servers
+		planActCollaboration?: boolean // Opt-in model handoffs, independent of other MCP tools
 	}
 	// Global settings
 	enableNotifications: boolean // Show notifications for approval and task completion
@@ -39,6 +40,7 @@ export const DEFAULT_AUTO_APPROVAL_SETTINGS: AutoApprovalSettings = {
 		executeAllCommands: true,
 		useBrowser: true,
 		useMcp: true,
+		planActCollaboration: false,
 	},
 	enableNotifications: false,
 }

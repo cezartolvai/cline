@@ -168,6 +168,8 @@ export class SdkModeCoordinator {
 	async rebuildSessionForMode(
 		newMode: Mode,
 		options: {
+			guard?: () => boolean
+			canStart?: () => boolean
 			autoContinue?: boolean
 			userContinuationPrompt?: string
 			userImages?: string[]
@@ -180,12 +182,15 @@ export class SdkModeCoordinator {
 	private async performRebuildSessionForMode(
 		newMode: Mode,
 		options: {
+			guard?: () => boolean
+			canStart?: () => boolean
 			autoContinue?: boolean
 			userContinuationPrompt?: string
 			userImages?: string[]
 			userFiles?: string[]
 		},
 	): Promise<boolean> {
+		if ((options.guard && !options.guard()) || (options.canStart && !options.canStart())) return false
 		const previousMode = this.options.stateManager.getGlobalSettingsKey("mode")
 		this.options.stateManager.setGlobalState("mode", newMode)
 
@@ -247,6 +252,11 @@ export class SdkModeCoordinator {
 				cwd,
 				mode: newMode,
 			})
+			if ((options.guard && !options.guard()) || (options.canStart && !options.canStart())) {
+				this.options.stateManager.setGlobalState("mode", previousMode)
+				await this.options.postStateToWebview()
+				return false
+			}
 			const rebuildResult = await this.options.sessions.replaceActiveSession({
 				expectedSession: activeSession,
 				startInput,
@@ -283,7 +293,7 @@ export class SdkModeCoordinator {
 			// that never took effect would lie to the model. Recording before the
 			// auto-continue send lets that send carry the notice.
 			this.recordModeSwitchNotice(startResult.sessionId, previousMode, newMode)
-			if (options.autoContinue) {
+			if (options.autoContinue && (!options.guard || options.guard())) {
 				const userPrompt = options.userContinuationPrompt
 				const userImages = options.userImages
 				const userFiles = options.userFiles
@@ -295,12 +305,16 @@ export class SdkModeCoordinator {
 				this.options.onAutoContinueStarting()
 				// Resolve mentions before echoing so a resolution failure cannot
 				// leave an echoed-but-never-sent user message in the transcript.
-				const prompt = userPrompt ? await this.options.resolveContextMentions(userPrompt) : ACT_MODE_CONTINUATION_PROMPT
+				const prompt = userPrompt
+					? options.guard
+						? userPrompt
+						: await this.options.resolveContextMentions(userPrompt)
+					: ACT_MODE_CONTINUATION_PROMPT
 				if (userPrompt || userImages?.length || userFiles?.length) {
 					const userMessage: ClineMessage = {
 						ts: Date.now(),
 						type: "say",
-						say: "user_feedback",
+						say: options.guard ? "text" : "user_feedback",
 						text: userPrompt ?? "",
 						images: userImages,
 						files: userFiles,

@@ -4,6 +4,7 @@ import type { VscodeTerminalManager } from "@/hosts/vscode/terminal/VscodeTermin
 import type { McpHub } from "@/services/mcp/McpHub"
 import { resolveMcpServerTimeoutMs } from "@/services/mcp/timeout"
 import { Logger } from "@/shared/services/Logger"
+import { SdkCollaboration } from "./sdk-collaboration"
 import type { SdkForegroundCommandCoordinator } from "./sdk-foreground-command-coordinator"
 import { createVscodeRunCommandsTool, VSCODE_FOREGROUND_RUN_COMMANDS_TIMEOUT_MS } from "./vscode-run-commands-tool"
 
@@ -46,6 +47,7 @@ export class McpHubToolProvider {
 }
 
 export interface VscodeExtraToolsOptions {
+	collaboration?: SdkCollaboration
 	cwd?: string
 	/**
 	 * Lazy factory for the VscodeTerminalManager.
@@ -64,13 +66,14 @@ export async function createVscodeExtraTools(mcpHub: McpHub, options?: VscodeExt
 	const mcpTools = await Promise.all(
 		mcpHub.getServers().map(async (server) => {
 			try {
-				return await createMcpTools({
+				const tools = await createMcpTools({
 					serverName: server.name,
 					provider,
 					// Keep the tool wrapper timeout in agreement with the MCP
 					// request timeout: both derive from the server's config.
 					timeoutMs: resolveMcpServerTimeoutMs(server.config),
 				})
+				return tools.map((tool) => options?.collaboration?.wrap(tool, server.name) ?? tool)
 			} catch (error) {
 				Logger.warn(
 					`[VscodeRuntimeTools] Failed to load tools from MCP server "${server.name}": ${

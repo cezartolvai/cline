@@ -41,10 +41,10 @@ const AutoApproveMenuItem = ({ action, isChecked, onToggle, showIcon = true, dis
 
 	const content = (
 		<div className="w-full" style={{ opacity: disabled ? 0.5 : 1 }}>
-			<CheckboxWrapper $disabled={disabled} className="w-full" onClick={onChange}>
+			<CheckboxWrapper $disabled={disabled} className="w-full" onClick={onChange} title={action.description}>
 				<VSCodeCheckbox checked={checked} disabled={disabled}>
 					<div className="w-full flex text-sm items-center justify-start text-foreground gap-2">
-						{showIcon && <span className={`codicon ${action.icon} icon`}></span>}
+						{showIcon && <span className={`codicon ${action.icon} icon`} />}
 						<span className="label">{action.label}</span>
 					</div>
 				</VSCodeCheckbox>

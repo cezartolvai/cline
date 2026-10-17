@@ -28,6 +28,7 @@ export async function updateAutoApprovalSettings(controller: Controller, request
 			},
 		}
 
+		if (settings.actions.planActCollaboration !== true) controller.cancelCollaborationHandoff()
 		controller.stateManager.setGlobalState("autoApprovalSettings", settings)
 		if (controller.task?.taskId) {
 			controller.stateManager.setTaskSettings(controller.task.taskId, "autoApprovalSettings", settings)

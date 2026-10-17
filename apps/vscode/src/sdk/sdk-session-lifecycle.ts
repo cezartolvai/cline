@@ -12,6 +12,7 @@ import type { VscodeTerminalManager } from "@/hosts/vscode/terminal/VscodeTermin
 import { McpHub } from "@/services/mcp/McpHub"
 import { Logger } from "@/shared/services/Logger"
 import type { ActiveSession } from "./cline-session-factory"
+import { SdkCollaboration } from "./sdk-collaboration"
 import type { SdkForegroundCommandCoordinator } from "./sdk-foreground-command-coordinator"
 import { buildToolPolicies } from "./sdk-tool-policies"
 import type { SdkSessionHost } from "./session-host"
@@ -24,6 +25,7 @@ type ApplyPatchExecutorHandler = NonNullable<Parameters<typeof VscodeSessionHost
 type ReadFileExecutorHandler = NonNullable<Parameters<typeof VscodeSessionHost.create>[0]["readFileExecutor"]>
 
 export interface SdkSessionLifecycleOptions {
+	collaboration?: SdkCollaboration
 	mcpHub: McpHub
 	requestToolApproval: RequestToolApprovalHandler
 	askQuestion: AskQuestionHandler
@@ -358,6 +360,7 @@ export class SdkSessionLifecycle {
 			// supplied to sdkHost.start(...), otherwise it can leak across reused sessions.
 			this.sharedHostPromise = VscodeSessionHost.create({
 				mcpHub: this.options.mcpHub,
+				collaboration: this.options.collaboration,
 				requestToolApproval: this.options.requestToolApproval,
 				askQuestion: this.options.askQuestion,
 				editorExecutor: this.options.editorExecutor,
