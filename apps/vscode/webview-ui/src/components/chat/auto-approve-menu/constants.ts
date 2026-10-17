@@ -31,4 +31,12 @@ export const ACTION_METADATA: ActionMetadata[] = [
 		shortName: "MCP",
 		icon: "codicon-server",
 	},
+	{
+		id: "planActCollaboration",
+		label: "Plan ↔ Act collaboration",
+		shortName: "Plan ↔ Act",
+		icon: "codicon-arrow-swap",
+		description:
+			"Allow the planning and execution models to hand tasks back and forth automatically. Requires the cline-collaboration MCP server.",
+	},
 ]

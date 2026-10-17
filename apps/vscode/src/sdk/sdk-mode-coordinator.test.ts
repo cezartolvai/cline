@@ -17,6 +17,59 @@ vi.mock("@core/storage/disk", () => ({
 }))
 
 describe("SdkModeCoordinator", () => {
+	it("does not switch after collaboration is disabled while waiting for the rebuild lock", async () => {
+		const { coordinator, options, state } = makeCoordinator({ activeSession: makeActiveSession(), mode: "plan" })
+		await expect(coordinator.rebuildSessionForMode("act", { autoContinue: true, guard: () => false })).resolves.toBe(false)
+		expect(state.mode).toBe("plan")
+		expect(options.sessions.replaceActiveSession).not.toHaveBeenCalled()
+	})
+	it("rolls back when collaboration is disabled during asynchronous setup", async () => {
+		const { coordinator, options, state } = makeCoordinator({ activeSession: makeActiveSession(), mode: "plan" })
+		let enabled = true
+		options.loadInitialMessages.mockImplementationOnce(async () => {
+			enabled = false
+			return []
+		})
+		await expect(coordinator.rebuildSessionForMode("act", { autoContinue: true, guard: () => enabled })).resolves.toBe(false)
+		expect(state.mode).toBe("plan")
+		expect(options.sessions.replaceActiveSession).not.toHaveBeenCalled()
+	})
+	it("does not start a collaboration turn when disabled during session replacement", async () => {
+		const { coordinator, options } = makeCoordinator({ activeSession: makeActiveSession(), mode: "act" })
+		let enabled = true
+		options.sessions.replaceActiveSession.mockImplementationOnce(async () => {
+			enabled = false
+			return { startResult: { sessionId: "old-session" }, sdkHost: { send: vi.fn() } }
+		})
+		await expect(
+			coordinator.rebuildSessionForMode("plan", {
+				autoContinue: true,
+				userContinuationPrompt: "Review the changes",
+				guard: () => enabled,
+			}),
+		).resolves.toBe(false)
+		expect(options.sessions.fireAndForgetSend).not.toHaveBeenCalled()
+	})
+	it("automatically starts Plan with the Act report without expanding mentions", async () => {
+		const { coordinator, options } = makeCoordinator({ activeSession: makeActiveSession(), mode: "act" })
+		await expect(
+			coordinator.rebuildSessionForMode("plan", {
+				autoContinue: true,
+				userContinuationPrompt: "Review @file test results",
+				guard: () => true,
+			}),
+		).resolves.toBe(true)
+		expect(options.sessionConfigBuilder.build).toHaveBeenCalledWith({ cwd: "/workspace", mode: "plan" })
+		expect(options.resolveContextMentions).not.toHaveBeenCalled()
+		expect(options.sessions.fireAndForgetSend).toHaveBeenCalledWith(
+			expect.anything(),
+			"new-session",
+			"Review @file test results",
+			undefined,
+			undefined,
+		)
+	})
+
 	beforeEach(() => {
 		vi.clearAllMocks()
 	})

@@ -80,6 +80,7 @@ import {
 } from "./sdk-checkpoints"
 import { type CloudTaskInput, SdkCloudSessionCoordinator } from "./sdk-cloud-session-coordinator"
 import { SdkCloudTaskTarget } from "./sdk-cloud-task-target"
+import { COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
 import { SdkCompactionCoordinator } from "./sdk-compaction-coordinator"
 import { SdkDiffEditCoordinator } from "./sdk-diff-edit-coordinator"
 import { SdkFollowupCoordinator } from "./sdk-followup-coordinator"
@@ -239,6 +240,27 @@ export class Controller {
 	// Presents the Task interface that gRPC handlers expect, delegating to the
 	// active SDK session.
 	task?: TaskProxy
+
+	private readonly collaboration = new SdkCollaboration({
+		getSession: () => this.sessions?.getActiveSession(),
+		getMode: () => (this.stateManager.getGlobalSettingsKey("mode") === "plan" ? "plan" : "act"),
+		isEnabled: () => this.stateManager.getGlobalSettingsKey("autoApprovalSettings")?.actions.planActCollaboration === true,
+		isServerConnected: () =>
+			this.mcpHub.getServers().some((server) => server.name === COLLABORATION_SERVER && server.status === "connected"),
+		switchMode: (mode, prompt, guard) => {
+			const session = this.sessions.getActiveSession()
+			return this.mode.rebuildSessionForMode(mode, {
+				autoContinue: true,
+				userContinuationPrompt: prompt,
+				guard,
+				canStart: () =>
+					!!session &&
+					this.sessions.getActiveSession() === session &&
+					!session.isRunning &&
+					(session.queuedPromptCount ?? 0) === 0,
+			})
+		},
+	})
 
 	mcpHub: McpHub
 	accountService: ClineAccountService
@@ -419,6 +441,7 @@ export class Controller {
 			getCwd: () => this.lastKnownWorkspaceRoot,
 		})
 		this.sessions = new SdkSessionLifecycle({
+			collaboration: this.collaboration,
 			mcpHub: this.mcpHub,
 			telemetry: this.sdkTelemetry.telemetry,
 			requestToolApproval: (request) => this.interactions.handleRequestToolApproval(request),
@@ -453,12 +476,14 @@ export class Controller {
 				return this._terminalManager
 			},
 			onSendStart: () => {
+				this.collaboration.cancel()
 				this.beginProviderFailureTelemetryTurn()
 			},
 			// this.mode is assigned later in this constructor; the closure only
 			// runs at send time, long after construction completes.
 			consumeModeSwitchNotice: (sessionId) => this.mode.consumeModeSwitchNotice(sessionId),
-			onSendComplete: async () => {
+			onSendComplete: async (sessionId) => {
+				await this.collaboration.complete(sessionId)
 				// Normal flows close their diff sessions inline; anything left here is orphaned.
 				void this.diffEdits.discardAllPreviews("turn complete")
 
@@ -467,6 +492,7 @@ export class Controller {
 				})
 			},
 			onSendError: async (error, sessionId) => {
+				this.collaboration.cancel()
 				// A turn failed — the UI shows error recovery (Retry / Sign In / Add Credits).
 				void this.diffEdits.discardAllPreviews("turn error")
 				this.turnStateTracker.set("error")
@@ -763,7 +789,10 @@ export class Controller {
 		// Subscribe to MCP tool list changes so we can restart the SDK session
 		// when servers are added/removed/reconnected. The SDK's DefaultSessionBuilder
 		// does not support dynamic MCP tools, so we must restart the session.
-		this.mcpHub.setToolListChangeCallback(() => this.mcpTools.handleToolListChanged())
+		this.mcpHub.setToolListChangeCallback(() => {
+			this.collaboration.cancel()
+			this.mcpTools.handleToolListChanged()
+		})
 
 		// Initialize gRPC bridge
 		this.grpcBridge = new WebviewGrpcBridge(this.messageTranslatorState)
@@ -1024,6 +1053,7 @@ export class Controller {
 	}
 
 	async dispose(): Promise<void> {
+		this.collaboration.cancel()
 		this.providerConfigStoreSubscription.dispose()
 		// Clear the remote config timer to prevent stale fetches
 		if (this.remoteConfigTimer) {
@@ -1537,6 +1567,7 @@ export class Controller {
 		taskSettings?: Partial<Settings>,
 		cloudTarget?: CloudTarget,
 	): Promise<string | undefined> {
+		this.collaboration.cancel()
 		if (cloudTarget) {
 			// Register the cloud start before the first await so a Cancel that
 			// arrives while remote config is still loading finds it and stops it.
@@ -1573,6 +1604,7 @@ export class Controller {
 	}
 
 	async reinitExistingTaskFromId(taskId: string): Promise<void> {
+		this.collaboration.cancel()
 		await this.waitForInitialRemoteConfig()
 		this.turnStateTracker.set("streaming")
 		this.messageTranslatorState.clearTurnOutcome()
@@ -1580,6 +1612,7 @@ export class Controller {
 	}
 
 	async cancelTask(): Promise<void> {
+		this.collaboration.cancel()
 		// Fence first: mark resumable and invalidate provisioning before any abort await,
 		// so straggler work cannot restore the cancelled turn's streaming state.
 		this.turnStateTracker.set("resumable")
@@ -1644,7 +1677,9 @@ export class Controller {
 	}
 
 	async clearTask(): Promise<void> {
+		this.collaboration.cancel()
 		this.pendingStartRetry = undefined
+		this.pendingClineAuthRetry = undefined
 		// No active task — UI returns to idle (input enabled, no buttons/thinking).
 		this.turnStateTracker.set("idle")
 		// A cloud task still provisioning has no SDK session for taskControl to end;
@@ -2182,9 +2217,14 @@ export class Controller {
 		return historyItemToTaskResponse(historyItem)
 	}
 
+	cancelCollaborationHandoff(): void {
+		this.collaboration.cancel()
+	}
+
 	// ---- Mode switching ----
 
 	async togglePlanActMode(modeToSwitchTo: Mode, chatContent?: ChatContent): Promise<boolean> {
+		this.collaboration.cancel()
 		return this.mode.togglePlanActMode(modeToSwitchTo, chatContent)
 	}
 

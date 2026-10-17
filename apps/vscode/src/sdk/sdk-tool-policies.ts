@@ -46,6 +46,9 @@ export function buildToolPolicies(
  * an SDK session was created before the toggle changed.
  */
 export function isToolAutoApproved(toolName: string, settings: AutoApprovalSettings): boolean {
+	if (toolName === "cline-collaboration__handoff_to_act" || toolName === "cline-collaboration__handoff_to_plan") {
+		return settings.actions.planActCollaboration === true
+	}
 	if (isReadTool(toolName)) {
 		return !!settings.actions.readFiles
 	}
