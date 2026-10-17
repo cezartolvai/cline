@@ -1,6 +1,6 @@
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { describe, expect, it, vi } from "vitest"
-import { COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
+import { COLLABORATION_PROMPT, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
 import { isToolAutoApproved } from "./sdk-tool-policies"
 
 function fixture() {
@@ -68,6 +68,12 @@ function fixture() {
 }
 
 describe("MCP collaboration bridge", () => {
+	it("assigns planning to Plan and heavy implementation work to Act", () => {
+		expect(COLLABORATION_PROMPT).toContain("Plan owns discovery, architecture")
+		expect(COLLABORATION_PROMPT).toContain("Act owns the heavy lifting")
+		expect(COLLABORATION_PROMPT).toContain("Do not hand off merely to provide a status update")
+	})
+
 	it("hands off Plan → Act → Plan only after each turn completes", async () => {
 		const f = fixture()
 		const act = f.tool("act")
