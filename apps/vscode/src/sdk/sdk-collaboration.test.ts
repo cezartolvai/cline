@@ -51,6 +51,9 @@ function fixture() {
 		idle: () => {
 			session.isRunning = false
 		},
+		setMode: (next: "plan" | "act") => {
+			mode = next
+		},
 		disable: () => {
 			enabled = false
 			bridge.cancel()
@@ -72,6 +75,18 @@ describe("MCP collaboration bridge", () => {
 		expect(COLLABORATION_PROMPT).toContain("Plan owns discovery, architecture")
 		expect(COLLABORATION_PROMPT).toContain("Act owns the heavy lifting")
 		expect(COLLABORATION_PROMPT).toContain("Do not hand off merely to provide a status update")
+	})
+
+	it("returns an Act completion to Plan so only Plan may finalize", async () => {
+		const f = fixture()
+		f.setMode("act")
+		f.idle()
+		await f.bridge.reviewActCompletion("task-a")
+		expect(f.switchMode).toHaveBeenLastCalledWith(
+			"plan",
+			expect.stringContaining("only then decide whether to finalize"),
+			expect.any(Function),
+		)
 	})
 
 	it("hands off Plan → Act → Plan only after each turn completes", async () => {

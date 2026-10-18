@@ -484,6 +484,7 @@ export class Controller {
 			consumeModeSwitchNotice: (sessionId) => this.mode.consumeModeSwitchNotice(sessionId),
 			onSendComplete: async (sessionId) => {
 				await this.collaboration.complete(sessionId)
+				await this.collaboration.reviewActCompletion(sessionId)
 				// Normal flows close their diff sessions inline; anything left here is orphaned.
 				void this.diffEdits.discardAllPreviews("turn complete")
 

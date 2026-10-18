@@ -37,6 +37,6 @@ export const ACTION_METADATA: ActionMetadata[] = [
 		shortName: "Plan ↔ Act",
 		icon: "codicon-arrow-swap",
 		description:
-			"Use your stronger planning model in Plan and your economical implementation model in Act. Requires the cline-collaboration MCP server.",
+			"Use your stronger planning model in Plan; Act implements and tests, while only Plan can finalize. Requires the cline-collaboration MCP server.",
 	},
 ]
