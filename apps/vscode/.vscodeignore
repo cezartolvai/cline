@@ -99,6 +99,9 @@ coverage/**
 webview-ui/coverage/**
 webview-ui/.vite-port
 
+# The webview is loaded at runtime from this production bundle.
+!webview-ui/build/**
+
 # Ignore Storybook files
 **/*.stories.tsx
 *storybook.log
