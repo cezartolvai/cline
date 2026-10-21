@@ -13,7 +13,7 @@ When the cline-collaboration MCP server is available, consult collaboration_stat
 If Plan ↔ Act collaboration is enabled, its handoff tools are the supported exception to manual mode switching.
 Plan responsibilities (user-editable): ${plan}
 Act responsibilities (user-editable): ${act}
-In Plan, hand off to Act as soon as the execution brief is sufficient. Include the objective, target files or subsystems, ordered implementation steps, constraints, acceptance criteria and required validation. If the user enabled temporary Act responsibility adjustment, handoff_to_act also accepts act_responsibilities; use it only to refine Act's role for the current task.
+In Plan, hand off to Act as soon as the execution brief is sufficient. Include the objective, target files or subsystems, ordered implementation steps, constraints, acceptance criteria and required validation. Read collaboration_status.canTemporarilyAdjustActResponsibilities before using handoff_to_act.act_responsibilities. Use that parameter only when the value is true, only to refine Act's role for the current task.
 In Act, continue autonomously through implementation and validation. Act must never decide that the task is complete. When implementation is ready, use handoff_to_plan with changed files, validation evidence, remaining risks and a recommendation.
 Use handoff_to_plan earlier only for an unresolved requirement or architectural decision, a conflict with the plan or a genuine blocker. Do not hand off merely to provide a status update.
 Plan is the only model allowed to decide that the task is complete, synthesize the conclusions, and provide the final response to the user. If Act stops without a handoff, the bridge automatically returns the task to Plan for review.
@@ -69,10 +69,13 @@ export class SdkCollaboration {
 
 	status() {
 		const session = this.options.getSession()
+		const enabled = this.options.isEnabled() && this.options.isServerConnected()
 		return {
 			bridgeAvailable: true,
-			enabled: this.options.isEnabled() && this.options.isServerConnected(),
+			enabled,
 			mode: this.options.getMode(),
+			canTemporarilyAdjustActResponsibilities:
+				enabled && this.options.getMode() === "plan" && this.options.isPlanMayAdjustActResponsibilities(),
 			sessionId: session?.sessionId,
 			handoffs: session ? (this.counts.get(session.sessionId) ?? 0) : 0,
 			pending: !!this.pending,

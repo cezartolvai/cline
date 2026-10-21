@@ -88,6 +88,16 @@ describe("MCP collaboration bridge", () => {
 		expect(prompt).toContain("Implement and report benchmark evidence.")
 	})
 
+	it("tells Plan when it may temporarily refine Act responsibilities", () => {
+		const f = fixture()
+		expect(f.bridge.status()).toMatchObject({ canTemporarilyAdjustActResponsibilities: true })
+		f.setMode("act")
+		expect(f.bridge.status()).toMatchObject({ canTemporarilyAdjustActResponsibilities: false })
+		f.setMode("plan")
+		f.disable()
+		expect(f.bridge.status()).toMatchObject({ canTemporarilyAdjustActResponsibilities: false })
+	})
+
 	it("returns an Act completion to Plan so only Plan may finalize", async () => {
 		const f = fixture()
 		f.setMode("act")
