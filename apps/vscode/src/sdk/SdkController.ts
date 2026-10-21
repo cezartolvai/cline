@@ -247,6 +247,8 @@ export class Controller {
 		isEnabled: () => this.stateManager.getGlobalSettingsKey("autoApprovalSettings")?.actions.planActCollaboration === true,
 		isServerConnected: () =>
 			this.mcpHub.getServers().some((server) => server.name === COLLABORATION_SERVER && server.status === "connected"),
+		isPlanMayAdjustActResponsibilities: () =>
+			this.stateManager.getGlobalSettingsKey("autoApprovalSettings")?.planMayAdjustActResponsibilities === true,
 		switchMode: (mode, prompt, guard) => {
 			const session = this.sessions.getActiveSession()
 			return this.mode.rebuildSessionForMode(mode, {

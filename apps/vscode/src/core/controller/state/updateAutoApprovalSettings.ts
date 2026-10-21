@@ -20,6 +20,13 @@ export async function updateAutoApprovalSettings(controller: Controller, request
 			...currentSettings,
 			...(request.version !== undefined && { version: request.version }),
 			...(request.enableNotifications !== undefined && { enableNotifications: request.enableNotifications }),
+			...(request.planResponsibilities !== undefined && {
+				planResponsibilities: request.planResponsibilities.slice(0, 6000),
+			}),
+			...(request.actResponsibilities !== undefined && { actResponsibilities: request.actResponsibilities.slice(0, 6000) }),
+			...(request.planMayAdjustActResponsibilities !== undefined && {
+				planMayAdjustActResponsibilities: request.planMayAdjustActResponsibilities,
+			}),
 			actions: {
 				...currentSettings.actions,
 				...(request.actions

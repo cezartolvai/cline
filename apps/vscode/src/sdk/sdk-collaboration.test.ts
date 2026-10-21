@@ -1,6 +1,6 @@
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { describe, expect, it, vi } from "vitest"
-import { COLLABORATION_PROMPT, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
+import { buildCollaborationPrompt, COLLABORATION_PROMPT, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
 import { isToolAutoApproved } from "./sdk-tool-policies"
 
 function fixture() {
@@ -19,6 +19,7 @@ function fixture() {
 		getMode: () => mode,
 		isEnabled: () => enabled,
 		isServerConnected: () => connected,
+		isPlanMayAdjustActResponsibilities: () => true,
 		switchMode,
 	})
 	const controller = new AbortController()
@@ -72,9 +73,19 @@ function fixture() {
 
 describe("MCP collaboration bridge", () => {
 	it("assigns planning to Plan and heavy implementation work to Act", () => {
-		expect(COLLABORATION_PROMPT).toContain("Plan owns discovery, architecture")
-		expect(COLLABORATION_PROMPT).toContain("Act owns the heavy lifting")
+		expect(COLLABORATION_PROMPT).toContain("Plan responsibilities (user-editable)")
+		expect(COLLABORATION_PROMPT).toContain("Act responsibilities (user-editable)")
 		expect(COLLABORATION_PROMPT).toContain("Do not hand off merely to provide a status update")
+		expect(COLLABORATION_PROMPT).toContain("provide the final response to the user")
+	})
+
+	it("uses editable responsibilities in the collaboration prompt", () => {
+		const prompt = buildCollaborationPrompt({
+			planResponsibilities: "Define acceptance checks before delegation.",
+			actResponsibilities: "Implement and report benchmark evidence.",
+		})
+		expect(prompt).toContain("Define acceptance checks before delegation.")
+		expect(prompt).toContain("Implement and report benchmark evidence.")
 	})
 
 	it("returns an Act completion to Plan so only Plan may finalize", async () => {

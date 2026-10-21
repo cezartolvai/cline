@@ -56,6 +56,9 @@ message AutoApprovalSettings {
   int32 version = 1;
   AutoApprovalActions actions = 2;
   optional bool enable_notifications = 3;
+  optional string plan_responsibilities = 4;
+  optional string act_responsibilities = 5;
+  optional bool plan_may_adjust_act_responsibilities = 6;
 }
 
 // NOTE: Add the new secret fields under SECRETS_KEYS in src/shared/storage/state-keys.ts
@@ -353,6 +356,9 @@ message AutoApprovalSettingsRequest {
   int32 version = 2;
   AutoApprovalActions actions = 3;
   bool enable_notifications = 4;
+  optional string plan_responsibilities = 5;
+  optional string act_responsibilities = 6;
+  optional bool plan_may_adjust_act_responsibilities = 7;
 }
 
 enum TelemetrySettingEnum {

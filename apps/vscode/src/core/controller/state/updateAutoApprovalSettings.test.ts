@@ -12,6 +12,7 @@ function makeController(currentSettings = DEFAULT_AUTO_APPROVAL_SETTINGS, taskId
 			autoApprovalSettings: currentSettings,
 		})),
 		postStateToWebview: vi.fn(async () => undefined),
+		cancelCollaborationHandoff: vi.fn(),
 		stateManager: {
 			setGlobalState: vi.fn(),
 			setTaskSettings: vi.fn(),
@@ -64,6 +65,21 @@ describe("updateAutoApprovalSettings", () => {
 			["task-1", "autoApprovalSettings", expectedSettings],
 		])
 		assert.equal(controller.postStateToWebview.mock.calls.length, 1)
+	})
+
+	it("persists editable Plan and Act responsibilities", async () => {
+		const controller = makeController(DEFAULT_AUTO_APPROVAL_SETTINGS, "task-1")
+		await updateAutoApprovalSettings(
+			controller,
+			AutoApprovalSettingsRequest.create({
+				version: DEFAULT_AUTO_APPROVAL_SETTINGS.version + 1,
+				planResponsibilities: "Plan validates release readiness.",
+				actResponsibilities: "Act implements and runs integration tests.",
+			}),
+		)
+		const saved = controller.stateManager.setGlobalState.mock.calls[0][1]
+		assert.equal(saved.planResponsibilities, "Plan validates release readiness.")
+		assert.equal(saved.actResponsibilities, "Act implements and runs integration tests.")
 	})
 
 	it("does not create a task override when no task is active", async () => {

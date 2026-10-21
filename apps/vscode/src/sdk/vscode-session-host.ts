@@ -1,4 +1,4 @@
-import { COLLABORATION_PROMPT, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
+import { buildCollaborationPrompt, COLLABORATION_SERVER, SdkCollaboration } from "./sdk-collaboration"
 // VscodeSessionHost — wraps ClineCore with VSCode-specific customizations
 //
 // Uses ClineCore.create() so the SDK owns session input normalization,
@@ -162,7 +162,7 @@ export class VscodeSessionHost implements SdkSessionHost {
 				systemPrompt:
 					(inputWithRemoteConfig.config.systemPrompt ?? "") +
 					(options.collaboration && options.mcpHub.getServers().some((s) => s.name === COLLABORATION_SERVER)
-						? COLLABORATION_PROMPT
+						? buildCollaborationPrompt(StateManager.get().getGlobalSettingsKey("autoApprovalSettings"))
 						: ""),
 				extraTools: [...(inputWithRemoteConfig.config.extraTools ?? []), ...extraTools],
 			}

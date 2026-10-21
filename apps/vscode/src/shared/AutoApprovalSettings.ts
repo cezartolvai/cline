@@ -22,9 +22,18 @@ export interface AutoApprovalSettings {
 		useMcp: boolean // Use MCP servers
 		planActCollaboration?: boolean // Opt-in model handoffs, independent of other MCP tools
 	}
+	// Collaboration role instructions, applied when Plan ↔ Act collaboration is enabled
+	planResponsibilities?: string
+	actResponsibilities?: string
+	planMayAdjustActResponsibilities?: boolean
 	// Global settings
 	enableNotifications: boolean // Show notifications for approval and task completion
 }
+
+export const DEFAULT_PLAN_RESPONSIBILITIES =
+	"Own discovery, architecture, constraints, task decomposition and acceptance criteria. Review Act reports and decide whether the task is complete."
+export const DEFAULT_ACT_RESPONSIBILITIES =
+	"Own implementation, edits, refactors, commands, diagnosis and tests. Report evidence and remaining risks to Plan; never finalize the task."
 
 export const DEFAULT_AUTO_APPROVAL_SETTINGS: AutoApprovalSettings = {
 	version: 1,
@@ -42,5 +51,8 @@ export const DEFAULT_AUTO_APPROVAL_SETTINGS: AutoApprovalSettings = {
 		useMcp: true,
 		planActCollaboration: false,
 	},
+	planResponsibilities: DEFAULT_PLAN_RESPONSIBILITIES,
+	actResponsibilities: DEFAULT_ACT_RESPONSIBILITIES,
+	planMayAdjustActResponsibilities: false,
 	enableNotifications: false,
 }
