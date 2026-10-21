@@ -171,29 +171,37 @@ const AutoApproveModal: React.FC<AutoApproveModalProps> = ({
 							Plan
 						</label>
 						<VSCodeTextArea
+							className="block w-full"
 							id="plan-responsibilities"
 							onInput={(event) => setPlanResponsibilities((event.target as HTMLTextAreaElement).value)}
 							resize="vertical"
 							rows={3}
+							style={{ width: "100%" }}
 							value={planResponsibilities}
 						/>
 						<label className="mb-1 mt-2 block text-xs" htmlFor="act-responsibilities">
 							Act
 						</label>
 						<VSCodeTextArea
+							className="block w-full"
 							id="act-responsibilities"
 							onInput={(event) => setActResponsibilities((event.target as HTMLTextAreaElement).value)}
 							resize="vertical"
 							rows={3}
+							style={{ width: "100%" }}
 							value={actResponsibilities}
 						/>
-						<VSCodeCheckbox
-							checked={planMayAdjustActResponsibilities}
-							className="mt-2 text-xs"
-							onChange={(event) => setPlanMayAdjustActResponsibilities((event.target as HTMLInputElement).checked)}>
-							Let Plan temporarily adjust Act responsibilities for this task
-						</VSCodeCheckbox>
-						<div className="mt-2 flex gap-2">
+						<div className="mt-2 w-full">
+							<VSCodeCheckbox
+								checked={planMayAdjustActResponsibilities}
+								className="block w-full text-xs"
+								onChange={(event) =>
+									setPlanMayAdjustActResponsibilities((event.target as HTMLInputElement).checked)
+								}>
+								Let Plan temporarily adjust Act responsibilities for this task
+							</VSCodeCheckbox>
+						</div>
+						<div className="mt-2 flex flex-wrap gap-2">
 							<VSCodeButton
 								appearance="secondary"
 								disabled={savingResponsibilities}
