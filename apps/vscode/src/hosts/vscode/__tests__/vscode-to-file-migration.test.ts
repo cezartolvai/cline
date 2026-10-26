@@ -623,7 +623,10 @@ describe("vscode-to-file-migration", () => {
 			executeAllCommands: true,
 			useBrowser: true,
 			useMcp: true,
+			planActCollaboration: false,
 		}
+		const legacyAllActionsEnabled = { ...allActionsEnabled }
+		delete (legacyAllActionsEnabled as { planActCollaboration?: boolean }).planActCollaboration
 
 		it("enables all auto-approval actions for a legacy user with yoloModeToggled in VSCode storage", async () => {
 			const mockCtx = createMockVSCodeContext()
@@ -641,7 +644,7 @@ describe("vscode-to-file-migration", () => {
 
 			result.yoloModeMigrated.should.be.true()
 			const settings = storageContext.globalState.get("autoApprovalSettings") as any
-			settings.actions.should.deepEqual(allActionsEnabled)
+			settings.actions.should.deepEqual(legacyAllActionsEnabled)
 			// Non-action fields are preserved; version is bumped for race-condition detection.
 			settings.enableNotifications.should.equal(true)
 			settings.version.should.equal(6)

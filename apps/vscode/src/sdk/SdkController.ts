@@ -1682,7 +1682,6 @@ export class Controller {
 	async clearTask(): Promise<void> {
 		this.collaboration.cancel()
 		this.pendingStartRetry = undefined
-		this.pendingClineAuthRetry = undefined
 		// No active task — UI returns to idle (input enabled, no buttons/thinking).
 		this.turnStateTracker.set("idle")
 		// A cloud task still provisioning has no SDK session for taskControl to end;
