@@ -32,6 +32,7 @@ interface Session {
 	queuedPromptCount?: number
 }
 interface Handoff {
+	protocol: string
 	target: Mode
 	message: string
 	actResponsibilities?: string
@@ -73,6 +74,26 @@ function parseStructuredMcpResult(result: unknown): Record<string, unknown> | un
 		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : undefined
 	} catch {
 		return undefined
+	}
+}
+
+function createHostHandoff(input: unknown, target: Mode): Handoff | undefined {
+	if (!input || typeof input !== "object") return undefined
+	const message = (input as { message?: unknown }).message
+	const actResponsibilities = (input as { act_responsibilities?: unknown }).act_responsibilities
+	if (typeof message !== "string" || !message.trim() || message.length > 24000) return undefined
+	if (
+		actResponsibilities !== undefined &&
+		(typeof actResponsibilities !== "string" || !actResponsibilities.trim() || actResponsibilities.length > 6000)
+	)
+		return undefined
+	return {
+		protocol: "cline-collaboration/v1",
+		requestId: `host-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		target,
+		message: message.trim(),
+		maxHandoffs: 6,
+		...(actResponsibilities === undefined ? {} : { actResponsibilities: actResponsibilities.trim() }),
 	}
 }
 
@@ -132,7 +153,7 @@ export class SdkCollaboration {
 				const result = (await tool.execute(input, context)) as any
 				if (epoch !== this.epoch || this.options.getSession() !== session) throw new Error("Handoff cancelled.")
 				this.check(context, target)
-				const data = parseStructuredMcpResult(result)
+				const data = parseStructuredMcpResult(result) ?? (result?.isError ? undefined : createHostHandoff(input, target))
 				if (
 					result?.isError ||
 					data?.protocol !== "cline-collaboration/v1" ||

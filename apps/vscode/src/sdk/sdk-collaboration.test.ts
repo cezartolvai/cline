@@ -133,33 +133,22 @@ describe("MCP collaboration bridge", () => {
 		})
 	})
 
-	it("accepts the JSON text response used by MCP servers that omit structuredContent", async () => {
+	it("uses host-validated input when an MCP runtime omits structuredContent", async () => {
 		const f = fixture()
 		const tool = f.bridge.wrap(
 			{
 				name: `${COLLABORATION_SERVER}__handoff_to_act`,
 				description: "",
 				inputSchema: {},
-				execute: async () => ({
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify({
-								protocol: "cline-collaboration/v1",
-								target: "act",
-								message: "Implement and validate the requested change.",
-								requestId: "text-response",
-								maxHandoffs: 6,
-							}),
-						},
-					],
-				}),
+				execute: async () => ({ content: [{ type: "text", text: "MCP request accepted." }] }),
 			},
 			COLLABORATION_SERVER,
 		)
-		await expect(tool.execute({}, f.context)).resolves.toMatchObject({
-			content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
-		})
+		await expect(tool.execute({ message: "Implement and validate the requested change." }, f.context)).resolves.toMatchObject(
+			{
+				content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
+			},
+		)
 	})
 	it.each(["disable", "disconnect", "replace", "queue"] as const)("cancels pending handoff on %s", async (action) => {
 		const f = fixture()
