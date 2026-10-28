@@ -55,6 +55,9 @@ function fixture() {
 		setMode: (next: "plan" | "act") => {
 			mode = next
 		},
+		setSessionId: (sessionId: string) => {
+			session = { ...session, sessionId }
+		},
 		disable: () => {
 			enabled = false
 			bridge.cancel()
@@ -133,6 +136,14 @@ describe("MCP collaboration bridge", () => {
 		})
 	})
 
+	it("uses the active session when the SDK context has a different conversation ID", async () => {
+		const f = fixture()
+		f.setSessionId("active-session")
+		await expect(f.tool("act").execute({}, f.context)).resolves.toMatchObject({
+			content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
+		})
+	})
+
 	it("uses host-validated input when an MCP runtime omits structuredContent", async () => {
 		const f = fixture()
 		const tool = f.bridge.wrap(
@@ -169,10 +180,9 @@ describe("MCP collaboration bridge", () => {
 			expect(f.switchMode).not.toHaveBeenCalled()
 		}
 	})
-	it("rejects disabled, same-mode and wrong-session calls", async () => {
+	it("rejects disabled and same-mode calls", async () => {
 		const f = fixture()
 		await expect(f.tool("plan").execute({}, f.context)).rejects.toThrow("Already")
-		await expect(f.tool("act").execute({}, { ...f.context, sessionId: "task-b" })).rejects.toThrow("eligible")
 		f.disable()
 		await expect(f.tool("act").execute({}, f.context)).rejects.toThrow("disabled")
 	})

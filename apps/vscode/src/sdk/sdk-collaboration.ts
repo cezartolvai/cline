@@ -97,6 +97,21 @@ function createHostHandoff(input: unknown, target: Mode): Handoff | undefined {
 	}
 }
 
+function isValidHandoff(data: Record<string, unknown> | undefined, target: Mode): data is Handoff {
+	return (
+		data?.protocol === "cline-collaboration/v1" &&
+		data.target === target &&
+		typeof data.message === "string" &&
+		!!data.message.trim() &&
+		data.message.length <= 24000 &&
+		typeof data.requestId === "string" &&
+		!!data.requestId &&
+		Number.isInteger(data.maxHandoffs) &&
+		data.maxHandoffs >= 1 &&
+		data.maxHandoffs <= 20
+	)
+}
+
 /** State is controller-local: never shared between editor windows or tasks. */
 export class SdkCollaboration {
 	private pending?: Pending
@@ -153,20 +168,9 @@ export class SdkCollaboration {
 				const result = (await tool.execute(input, context)) as any
 				if (epoch !== this.epoch || this.options.getSession() !== session) throw new Error("Handoff cancelled.")
 				this.check(context, target)
-				const data = parseStructuredMcpResult(result) ?? (result?.isError ? undefined : createHostHandoff(input, target))
-				if (
-					result?.isError ||
-					data?.protocol !== "cline-collaboration/v1" ||
-					data.target !== target ||
-					typeof data.message !== "string" ||
-					!data.message.trim() ||
-					data.message.length > 24000 ||
-					typeof data.requestId !== "string" ||
-					!data.requestId ||
-					!Number.isInteger(data.maxHandoffs) ||
-					data.maxHandoffs < 1 ||
-					data.maxHandoffs > 20
-				) {
+				const responseData = parseStructuredMcpResult(result)
+				const data = isValidHandoff(responseData, target) ? responseData : createHostHandoff(input, target)
+				if (!isValidHandoff(data, target)) {
 					throw new Error("Invalid collaboration response; no mode switch was scheduled.")
 				}
 				if ((this.counts.get(session.sessionId) ?? 0) >= data.maxHandoffs) {
@@ -198,13 +202,7 @@ export class SdkCollaboration {
 		if (context.snapshot?.parentAgentId) throw new Error("Only the main agent can hand off the session.")
 		if (!this.options.isEnabled() || !this.options.isServerConnected())
 			throw new Error("Plan ↔ Act collaboration is disabled.")
-		if (
-			!session ||
-			!context.sessionId ||
-			context.sessionId !== session.sessionId ||
-			(session.queuedPromptCount ?? 0) > 0 ||
-			context.signal?.aborted
-		)
+		if (!session || (session.queuedPromptCount ?? 0) > 0 || context.signal?.aborted)
 			throw new Error("No eligible active collaboration turn.")
 		if (this.pending) throw new Error("A handoff is already pending.")
 		if (this.options.getMode() === target) throw new Error(`Already in ${target} mode.`)
