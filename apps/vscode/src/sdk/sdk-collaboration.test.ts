@@ -125,6 +125,13 @@ describe("MCP collaboration bridge", () => {
 		await f.bridge.complete("task-a")
 		expect(f.bridge.status()).toMatchObject({ mode: "plan", handoffs: 2 })
 	})
+	it("accepts a handoff when the tool context is active but the session has just become idle", async () => {
+		const f = fixture()
+		f.idle()
+		await expect(f.tool("act").execute({}, f.context)).resolves.toMatchObject({
+			content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
+		})
+	})
 	it.each(["disable", "disconnect", "replace", "queue"] as const)("cancels pending handoff on %s", async (action) => {
 		const f = fixture()
 		await f.tool("act").execute({}, f.context)

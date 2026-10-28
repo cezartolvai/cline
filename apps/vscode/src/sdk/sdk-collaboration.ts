@@ -77,6 +77,8 @@ export class SdkCollaboration {
 			canTemporarilyAdjustActResponsibilities:
 				enabled && this.options.getMode() === "plan" && this.options.isPlanMayAdjustActResponsibilities(),
 			sessionId: session?.sessionId,
+			sessionIsRunning: session?.isRunning ?? false,
+			queuedPromptCount: session?.queuedPromptCount ?? 0,
 			handoffs: session ? (this.counts.get(session.sessionId) ?? 0) : 0,
 			pending: !!this.pending,
 		}
@@ -157,7 +159,6 @@ export class SdkCollaboration {
 			!session ||
 			!context.sessionId ||
 			context.sessionId !== session.sessionId ||
-			!session.isRunning ||
 			(session.queuedPromptCount ?? 0) > 0 ||
 			context.signal?.aborted
 		)
