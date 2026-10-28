@@ -132,6 +132,35 @@ describe("MCP collaboration bridge", () => {
 			content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
 		})
 	})
+
+	it("accepts the JSON text response used by MCP servers that omit structuredContent", async () => {
+		const f = fixture()
+		const tool = f.bridge.wrap(
+			{
+				name: `${COLLABORATION_SERVER}__handoff_to_act`,
+				description: "",
+				inputSchema: {},
+				execute: async () => ({
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify({
+								protocol: "cline-collaboration/v1",
+								target: "act",
+								message: "Implement and validate the requested change.",
+								requestId: "text-response",
+								maxHandoffs: 6,
+							}),
+						},
+					],
+				}),
+			},
+			COLLABORATION_SERVER,
+		)
+		await expect(tool.execute({}, f.context)).resolves.toMatchObject({
+			content: [{ type: "text", text: "Handoff to act queued. This turn will now end." }],
+		})
+	})
 	it.each(["disable", "disconnect", "replace", "queue"] as const)("cancels pending handoff on %s", async (action) => {
 		const f = fixture()
 		await f.tool("act").execute({}, f.context)

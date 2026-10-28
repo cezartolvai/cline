@@ -54,6 +54,28 @@ interface Pending {
 	signal?: AbortSignal
 }
 
+function parseStructuredMcpResult(result: unknown): Record<string, unknown> | undefined {
+	if (!result || typeof result !== "object") return undefined
+	const candidate = (result as { structuredContent?: unknown }).structuredContent
+	if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) return candidate as Record<string, unknown>
+	const content = (result as { content?: unknown }).content
+	if (!Array.isArray(content)) return undefined
+	const textBlocks = content.filter(
+		(block): block is { type: "text"; text: string } =>
+			!!block &&
+			typeof block === "object" &&
+			(block as { type?: unknown }).type === "text" &&
+			typeof (block as { text?: unknown }).text === "string",
+	)
+	if (textBlocks.length !== 1) return undefined
+	try {
+		const parsed = JSON.parse(textBlocks[0].text)
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : undefined
+	} catch {
+		return undefined
+	}
+}
+
 /** State is controller-local: never shared between editor windows or tasks. */
 export class SdkCollaboration {
 	private pending?: Pending
@@ -110,7 +132,7 @@ export class SdkCollaboration {
 				const result = (await tool.execute(input, context)) as any
 				if (epoch !== this.epoch || this.options.getSession() !== session) throw new Error("Handoff cancelled.")
 				this.check(context, target)
-				const data = result?.structuredContent
+				const data = parseStructuredMcpResult(result)
 				if (
 					result?.isError ||
 					data?.protocol !== "cline-collaboration/v1" ||
